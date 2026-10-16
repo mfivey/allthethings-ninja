@@ -1,0 +1,40 @@
+---
+// Brand logo, inlined as SVG so colors come from the brand tokens
+// and the eyes can be animated. Traced from the original art files.
+import mark from '../assets/brand/mark.svg?raw';
+import wordmark from '../assets/brand/wordmark.svg?raw';
+import { site } from '../config/site';
+
+interface Props {
+  showMark?: boolean;
+  showWordmark?: boolean;
+  as?: 'h1' | 'div';
+}
+const { showMark = true, showWordmark = true, as: Tag = 'div' } = Astro.props;
+---
+<Tag class="logo">
+  <span class="sr-only">{site.name}</span>
+  {showMark && <span class="mark" data-logo-mark set:html={mark} />}
+  {showWordmark && <span class="wordmark" set:html={wordmark} />}
+</Tag>
+
+<style>
+  .logo {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(18px, 3.2vh, 34px);
+    font-size: inherit;
+  }
+  .mark,
+  .wordmark { display: block; line-height: 0; }
+  .mark { width: var(--mark-size, clamp(150px, 26vh, 290px)); }
+  .wordmark { width: var(--wordmark-size, min(84vw, 620px)); }
+  .logo :global(svg) { width: 100%; height: auto; overflow: visible; }
+  .logo :global(.ink) { fill: var(--bone); }
+  .logo :global(.accent) {
+    fill: var(--purple);
+    transition: transform 0.6s var(--ease-out);
+  }
+</style>

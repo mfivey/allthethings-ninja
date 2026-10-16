@@ -1,0 +1,63 @@
+---
+import '@fontsource/chakra-petch/400.css';
+import '@fontsource/chakra-petch/500.css';
+import '../styles/global.css';
+import { site } from '../config/site';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+const { title, description = site.description } = Astro.props;
+const fullTitle = title ? `${title} — ${site.name}` : site.name;
+const canonical = new URL(Astro.url.pathname, site.url);
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta name="theme-color" content="#111113" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={new URL('/og.png', site.url)} />
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body>
+    {site.nav.length > 0 && (
+      <header class="site-nav">
+        <a href="/" class="home">ATTN</a>
+        <nav>
+          {site.nav.map((l) => <a href={l.href}>{l.label}</a>)}
+        </nav>
+      </header>
+    )}
+    <slot />
+  </body>
+</html>
+
+<style>
+  .site-nav {
+    position: fixed;
+    inset: 0 0 auto 0;
+    z-index: 10;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px clamp(16px, 4vw, 40px);
+    font-size: 13px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  .site-nav a { text-decoration: none; color: var(--grey-300); }
+  .site-nav a:hover { color: var(--bone); }
+  .site-nav nav { display: flex; gap: 28px; }
+</style>

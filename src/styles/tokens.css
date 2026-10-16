@@ -1,0 +1,35 @@
+/* ─────────────────────────────────────────────────────────────
+   BRAND TOKENS — colors, type, spacing.
+   Matte only: no gloss, no glow, no shine.
+   ───────────────────────────────────────────────────────────── */
+:root {
+  /* Blacks (grey-tinged, matte) */
+  --void: #0a0a0b;        /* deepest edge of the page */
+  --space: #111113;       /* main background */
+  --space-lift: #18181b;  /* center of the vignette / raised surfaces */
+
+  /* Greys */
+  --grey-900: #1f1f23;
+  --grey-800: #2a2a2f;
+  --grey-700: #3a3a40;
+  --grey-500: #6b6b73;
+  --grey-400: #8d8d95;
+  --grey-300: #b4b4ba;
+  --grey-200: #d4d4d8;
+
+  /* Whites */
+  --bone: #e4e4e7;        /* matte off-white — logo + main text */
+
+  /* Purple (brand) */
+  --purple: #8742f4;      /* logo eyes + .NINJA, exact brand value */
+  --purple-matte: #7a52c7;/* softer purple for particles and UI */
+  --purple-dim: #4b3477;
+
+  /* Type */
+  --font-ui: 'Chakra Petch', ui-sans-serif, system-ui, sans-serif;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  color-scheme: dark;
+}

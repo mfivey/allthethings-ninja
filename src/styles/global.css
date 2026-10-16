@@ -1,0 +1,53 @@
+@import './tokens.css';
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  color: var(--bone);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Matte space backdrop: soft vignette on the body itself (always explicit,
+   so no host/browser white can ever show through) + fine static grain on top.
+   Layering: body bg → particle canvas (z 0) → page content (z 1+) → grain (z 50). */
+html { background: var(--space); }
+body {
+  background:
+    radial-gradient(120% 90% at 50% 42%, var(--space-lift) 0%, var(--space) 45%, var(--void) 100%)
+    fixed,
+    var(--space);
+}
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0.09;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.4 -0.2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+a { color: inherit; }
+
+::selection { background: var(--purple-dim); color: var(--bone); }
+
+:focus-visible {
+  outline: 1px solid var(--purple-matte);
+  outline-offset: 4px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

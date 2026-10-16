@@ -1,0 +1,164 @@
+#cloud-config
+# ─────────────────────────────────────────────────────────────
+#  allthethings.ninja — one-time Linode server setup
+#  Used as "User Data" when the Linode is created (Ubuntu 24.04 LTS).
+#
+#  What it does:
+#   • installs Caddy (web server, automatic free HTTPS) and Node.js 22
+#   • pulls the site from the public GitHub repo and builds it
+#   • checks GitHub every 2 minutes; new commits go live automatically
+#   • firewall (SSH/HTTP/HTTPS only), automatic security updates, swap
+# ─────────────────────────────────────────────────────────────
+
+package_update: true
+package_upgrade: true
+packages:
+  - debian-keyring
+  - debian-archive-keyring
+  - apt-transport-https
+  - curl
+  - gnupg
+  - git
+  - rsync
+  - ufw
+  - unattended-upgrades
+
+users:
+  - default
+  - name: attn
+    system: true
+    shell: /usr/sbin/nologin
+    lock_passwd: true
+
+write_files:
+  - path: /usr/local/bin/attn-deploy
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      # Pull the latest site from GitHub; rebuild + publish only when it changed.
+      set -euo pipefail
+      REPO="https://github.com/mfivey/allthethings-ninja.git"
+      BASE=/opt/attn
+      SRC=$BASE/src
+      WEB=/var/www/allthethings.ninja
+      exec 9>"$BASE/deploy.lock"
+      flock -n 9 || exit 0
+
+      if [ ! -d "$SRC/.git" ]; then
+        git clone --depth 1 "$REPO" "$SRC"
+      fi
+      cd "$SRC"
+      git fetch --depth 1 origin main
+      REMOTE=$(git rev-parse origin/main)
+      LAST=$(cat "$BASE/last-built" 2>/dev/null || true)
+      [ "$REMOTE" = "$LAST" ] && exit 0
+
+      git reset --hard origin/main
+      npm install --no-audit --no-fund
+      npm run build
+      rsync -a --delete dist/ "$WEB/"
+      echo "$REMOTE" > "$BASE/last-built"
+      echo "deployed ${REMOTE:0:7}"
+
+  - path: /etc/systemd/system/attn-deploy.service
+    permissions: '0644'
+    content: |
+      [Unit]
+      Description=Build and publish allthethings.ninja from GitHub
+      After=network-online.target
+      Wants=network-online.target
+
+      [Service]
+      Type=oneshot
+      User=attn
+      Group=attn
+      Environment=HOME=/opt/attn
+      ExecStart=/usr/local/bin/attn-deploy
+      TimeoutStartSec=900
+
+  - path: /etc/systemd/system/attn-deploy.timer
+    permissions: '0644'
+    content: |
+      [Unit]
+      Description=Check GitHub for site updates every 2 minutes
+
+      [Timer]
+      OnBootSec=30s
+      OnUnitActiveSec=2min
+
+      [Install]
+      WantedBy=timers.target
+
+  - path: /etc/caddy/Caddyfile.attn
+    permissions: '0644'
+    content: |
+      allthethings.ninja {
+        root * /var/www/allthethings.ninja
+        encode zstd gzip
+        file_server
+
+        @immutable path /_astro/*
+        header @immutable Cache-Control "public, max-age=31536000, immutable"
+
+        header {
+          X-Content-Type-Options nosniff
+          Referrer-Policy strict-origin-when-cross-origin
+          X-Frame-Options SAMEORIGIN
+          -Server
+        }
+
+        handle_errors {
+          @404 expression {err.status_code} == 404
+          rewrite @404 /404.html
+          file_server
+        }
+      }
+
+      www.allthethings.ninja {
+        redir https://allthethings.ninja{uri} permanent
+      }
+
+  - path: /etc/ssh/sshd_config.d/10-attn.conf
+    permissions: '0644'
+    content: |
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+
+runcmd:
+  # 1 GB swap so builds never run out of memory on the Nanode
+  - fallocate -l 1G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+  - echo '/swapfile none swap sw 0 0' >> /etc/fstab
+
+  # Node.js 22
+  - curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+  - apt-get install -y nodejs
+
+  # Caddy (official apt repo)
+  - curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+  - curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' -o /etc/apt/sources.list.d/caddy-stable.list
+  - apt-get update
+  - apt-get install -y caddy
+  - mv /etc/caddy/Caddyfile.attn /etc/caddy/Caddyfile
+
+  # Folders
+  - mkdir -p /opt/attn /var/www/allthethings.ninja
+  - chown -R attn:attn /opt/attn /var/www/allthethings.ninja
+  - chmod 755 /var/www/allthethings.ninja
+
+  # Firewall
+  - ufw default deny incoming
+  - ufw default allow outgoing
+  - ufw allow OpenSSH
+  - ufw allow 80/tcp
+  - ufw allow 443/tcp
+  - ufw --force enable
+
+  # Auto security updates
+  - dpkg-reconfigure -f noninteractive unattended-upgrades
+
+  - systemctl restart ssh || systemctl restart sshd
+  - systemctl enable --now caddy
+  - systemctl reload caddy
+  - systemctl daemon-reload
+  - systemctl enable --now attn-deploy.timer
+  - systemctl start attn-deploy.service

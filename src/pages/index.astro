@@ -1,0 +1,149 @@
+---
+import Base from '../layouts/Base.astro';
+import ParticleField from '../components/ParticleField.astro';
+import Logo from '../components/Logo.astro';
+import { site } from '../config/site';
+const year = new Date().getFullYear();
+---
+<Base>
+  <ParticleField />
+
+  <main class="intro">
+    <Logo as="h1" />
+    <p class="tagline">
+      {site.tagline.map((t, i) => (
+        <>
+          {i > 0 && <span class="dot" aria-hidden="true">·</span>}
+          <span>{t}</span>
+        </>
+      ))}
+    </p>
+  </main>
+
+  <p class="hint" data-hint aria-hidden="true">move around — then hold still</p>
+
+  <footer class="foot">
+    <span>© {year} {site.name}</span>
+    <a href={`mailto:${site.email}`}>Say hi&nbsp;→</a>
+  </footer>
+</Base>
+
+<script>
+  // The ninja's eyes follow the pointer (just a little).
+  const eyes = document.querySelector<SVGGElement>('[data-logo-mark] .accent');
+  const markEl = document.querySelector<HTMLElement>('[data-logo-mark]');
+  const hint = document.querySelector<HTMLElement>('[data-hint]');
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (eyes && markEl && !reduced) {
+    window.addEventListener('pointermove', (e) => {
+      const r = markEl.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height * 0.55;
+      const dx = e.clientX - cx;
+      const dy = e.clientY - cy;
+      const d = Math.hypot(dx, dy) || 1;
+      const k = Math.min(1, d / 400);
+      // SVG units (mark is ~1360 units wide)
+      eyes.style.transform = `translate(${(dx / d) * 16 * k}px, ${(dy / d) * 9 * k}px)`;
+    }, { passive: true });
+    document.addEventListener('pointerleave', () => { eyes.style.transform = ''; });
+  }
+
+  // Hint fades in after a few seconds, fades out once someone has played.
+  if (hint && !reduced) {
+    if (window.matchMedia('(pointer: coarse)').matches) {
+      hint.textContent = 'touch & hold anywhere';
+    }
+    const show = setTimeout(() => hint.classList.add('show'), 3500);
+    const check = setInterval(() => {
+      const f = (window as any).__attnField;
+      if (f?.pointer?.gathering) {
+        clearTimeout(show);
+        hint.classList.remove('show');
+        clearInterval(check);
+      }
+    }, 300);
+  }
+</script>
+
+<style>
+  .intro {
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 64px 16px 96px;
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .intro :global(.logo) {
+    animation: rise 1.6s var(--ease-out) both;
+  }
+
+  .tagline {
+    margin: clamp(22px, 4vh, 40px) 0 0;
+    font-size: clamp(11px, 1.3vw, 13px);
+    font-weight: 500;
+    letter-spacing: 0.42em;
+    text-transform: uppercase;
+    color: var(--grey-400);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0 0.9em;
+    animation: rise 1.6s 0.35s var(--ease-out) both;
+  }
+  .tagline .dot { color: var(--purple-matte); letter-spacing: 0; }
+
+  .hint {
+    position: fixed;
+    left: 0; right: 0;
+    bottom: 64px;
+    z-index: 2;
+    margin: 0;
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--grey-500);
+    opacity: 0;
+    transition: opacity 1.2s ease;
+    pointer-events: none;
+  }
+  .hint:global(.show) { opacity: 1; }
+
+  .foot {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 2;
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px clamp(16px, 4vw, 40px);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--grey-500);
+  }
+  .foot a {
+    text-decoration: none;
+    color: var(--grey-300);
+    transition: color 0.3s ease;
+  }
+  .foot a:hover { color: var(--purple-matte); }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .intro :global(.logo), .tagline { animation: none; }
+  }
+</style>

@@ -1,0 +1,31 @@
+---
+import Base from '../layouts/Base.astro';
+import ParticleField from '../components/ParticleField.astro';
+import Logo from '../components/Logo.astro';
+---
+<Base title="Lost">
+  <ParticleField />
+  <main>
+    <Logo showWordmark={false} />
+    <p>This page vanished like a ninja.</p>
+    <a href="/">Back to base →</a>
+  </main>
+</Base>
+
+<style>
+  main {
+    position: relative;
+    z-index: 1;
+    min-height: 100svh;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 20px;
+    padding: 16px;
+    text-align: center;
+    --mark-size: 120px;
+  }
+  p { margin: 12px 0 0; color: var(--grey-300); letter-spacing: 0.08em; }
+  a { color: var(--grey-400); text-decoration: none; font-size: 13px; letter-spacing: 0.2em; text-transform: uppercase; }
+  a:hover { color: var(--purple-matte); }
+</style>

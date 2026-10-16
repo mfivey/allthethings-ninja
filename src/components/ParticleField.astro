@@ -1,0 +1,27 @@
+---
+// Full-screen interactive particle background.
+// Tune the feel in src/scripts/particles.ts (DEFAULTS).
+---
+<canvas class="particle-field" data-particles aria-hidden="true"></canvas>
+
+<script>
+  import { createParticleField } from '../scripts/particles';
+  const el = document.querySelector<HTMLCanvasElement>('[data-particles]');
+  if (el) {
+    const field = createParticleField(el);
+    // expose for other page scripts (e.g. the logo's eyes)
+    (window as any).__attnField = field;
+  }
+</script>
+
+<style>
+  .particle-field {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    display: block;
+    touch-action: none;
+  }
+</style>
