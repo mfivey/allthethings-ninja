@@ -1,0 +1,38 @@
+name: Apply update bundle
+
+# Claude drops a base64 tar.gz of changed files into _incoming/bundle.b64
+# (and optionally a list of paths to remove in _incoming/delete.txt).
+# This unpacks it into the repo, commits, and cleans up.
+
+on:
+  push:
+    branches: [main]
+    paths: ['_incoming/**']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unpack
+        run: |
+          set -e
+          if [ -f _incoming/delete.txt ]; then
+            while IFS= read -r f; do [ -n "$f" ] && git rm -rf --ignore-unmatch -- "$f"; done < _incoming/delete.txt
+          fi
+          if [ -f _incoming/bundle.b64 ]; then
+            tr -d '\r\n ' < _incoming/bundle.b64 | base64 -d | tar -xz
+          fi
+          git rm -rf --quiet _incoming
+      - name: Commit
+        run: |
+          git config user.name "mfivey"
+          git config user.email "mikey@allthethings.ninja"
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -m "Apply update bundle"
+          git push
